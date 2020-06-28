@@ -1,9 +1,9 @@
 # Roz
 
-            ROZ
-      (calling after him)
-  I'm watching you Wazowski. Always
-  watching.  Watching.  Always.
+              ROZ
+        (calling after him)
+    I'm watching you Wazowski. Always
+    watching.  Watching.  Always.
 
 ## What is it?
 
