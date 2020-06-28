@@ -5,11 +5,6 @@ using System.Threading.Tasks;
 
 namespace Roz.Console
 {
-    //           ROZ
-    //     (calling after him)
-    // I'm watching you Wazowski. Always
-    // watching.  Watching.  Always.
-
     class Program
     {
         static string watcherName = $"Roz";
@@ -88,7 +83,11 @@ namespace Roz.Console
         {
             isShutdown = true;
             writer.AddMeta("logEnd", DateTime.UtcNow.ToString("o"));
+            System.Console.WriteLine($"Shutting down watcher...");            
+            Task.Delay(5000).Wait();
             watcher?.StopWatching();
+            System.Console.WriteLine($"Shutting down writer...");
+            Task.Delay(5000).Wait();
             writer?.Close();            
             System.Console.WriteLine($"{watcherName} Logged processes to {fileName}");
             System.Console.WriteLine($"Open this file in chrome://tracing/");

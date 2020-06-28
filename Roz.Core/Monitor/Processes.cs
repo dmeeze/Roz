@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Diagnostics.Tracing.Parsers;
 using Microsoft.Diagnostics.Tracing.Session;
@@ -12,12 +13,12 @@ namespace Roz.Core.Monitor
 {
     public class Processes : IDisposable
     {
+        const int NONE = -1;
+
         private readonly Log.Writer writer;
         private TraceEventSession session;
         private readonly Stopwatch stopwatch;
         private readonly PseudoThreadPool processes;
-
-        const int NONE = -1;
 
         public Processes(Log.Writer logWriter)
         {
@@ -38,7 +39,6 @@ namespace Roz.Core.Monitor
             session.Source.Kernel.ProcessStart += ProcessStartEvent;
             session.Source.Kernel.ProcessStop += ProcessStopEvent;
             stopwatch.Start();
-            writer.AddEntry(new BeginEntry(NONE,NONE,0.0,"ROOT"));
             session.Source.Process();
         }
         
@@ -46,7 +46,6 @@ namespace Roz.Core.Monitor
         {
             if (session?.IsActive ?? false)
             {
-                writer.AddEntry(new EndEntry(-1,-1,stopwatch.ElapsedMilliseconds * 1000.0));
                 session?.Stop();
             }
         }
@@ -59,50 +58,54 @@ namespace Roz.Core.Monitor
 
         private void ProcessStartEvent(TraceEvent data)
         {
-            var tid = processes.AddChild(data.ProcessID);
-            var entry = new BeginEntry(-1, tid, data.TimeStampRelativeMSec * 1000.0, data.ProcessName);
-            addArgs(data, entry);
+            var entry = new BeginEntry(NONE, NONE, data.TimeStampRelativeMSec * 1000.0, data.ProcessName);
+            var parentID = getParentID(data) ?? NONE;            
+            entry.ThreadID = processes.AddChild(data.ProcessID, parentID);
+            entry.Args = buildArgs(data).ToList();
             writer.AddEntry(entry);
         }
 
         private void ProcessStopEvent(TraceEvent data)
         {
+            var entry = new EndEntry(NONE, NONE, data.TimeStampRelativeMSec * 1000.0);
             var tid = processes.RemoveChild(data.ProcessID);
-            if (!tid.HasValue) return;
-            var entry = new EndEntry(-1, tid.Value, data.TimeStampRelativeMSec * 1000.0);
-            addArgs(data, entry);
+            if (tid.HasValue) entry.ThreadID = tid.Value;            
+            entry.Args = buildArgs(data).ToList();
             writer.AddEntry(entry);
         }
 
-        private int? addArgs(TraceEvent data, Entry entry)
+        private int? getParentID(TraceEvent data)
         {
-            int? result = null;
+            var parentIDString = data.PayloadStringByName("ParentID");
+            if (string.IsNullOrWhiteSpace(parentIDString)) return null;
+            if (int.TryParse(parentIDString, out int foundID)) return foundID;
+            return null;
+        }
+
+        private IEnumerable<(string,string)> buildArgs(TraceEvent data)
+        {
             for (int i = 0; i < data.PayloadNames.Length; i++)
             {
                 var key = data.PayloadNames[i];
                 
                 switch (key)
                 {
-                    case "ParentProcessID" :
-                        var value = data.PayloadStringByName(key);
-                        if (int.TryParse(value, out int parentID)) result = parentID;
-                        entry.Args.Add((key, value));
-                        break;
                     case "CommandLine" :
                     case "PackageFullName" :
                     case "ImageFileName" :
-                        entry.Args.Add((key, escape(data.PayloadStringByName(key))));
+                        yield return (key, escape(data.PayloadStringByName(key)));
                         break;
+                    case "ParentID" :
                     case "ProcessID" :                    
                     case "SessionID" :
                     case "ExitStatus" :
-                        entry.Args.Add((key, data.PayloadStringByName(key)));
+                        yield return(key, data.PayloadStringByName(key));
                         break;
                     default:
+                        //yield return(key, data.PayloadStringByName(key));
                         break;                    
                 }                
             }
-            return result;
         }
 
         private string escape(string entry) => entry.Replace(@"\",@"\\").Replace(@"""",@"\""");

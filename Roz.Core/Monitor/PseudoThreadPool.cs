@@ -1,39 +1,44 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Roz.Core.Monitor
 {
-    internal class PseudoThreadPool
+    public class PseudoThreadPool
     {
-        private List<int?> children = new List<int?>();
+        private List<List<int>> pseudoThreads = new List<List<int>>();
 
-        public int AddChild(int childProcessID)
+        public int AddChild(int childProcessID, int parentProcessID)
         {
-            lock (children)
+            lock (pseudoThreads)
             {
-                for (int i=0; i < children.Count; i++)
+                int? firstFree = null;
+                for (int i=0; i < pseudoThreads.Count; i++)
                 {
-                    if (children[i].HasValue) continue;
-
-                    children[i] = childProcessID;
-                    return i;
+                    var thread = pseudoThreads[i];
+                    if ((thread.Any()) && (thread.Last() == parentProcessID))
+                    {
+                        thread.Add(childProcessID);
+                        return i;
+                    }
+                    if (!firstFree.HasValue && !thread.Any()) firstFree = i;
                 }
-                children.Add(childProcessID);
-                return children.Count - 1;
+                if (firstFree.HasValue)
+                {
+                    pseudoThreads[firstFree.Value].Add(childProcessID);
+                    return firstFree.Value;
+                }
+                pseudoThreads.Add(new List<int>() { childProcessID });
+                return pseudoThreads.Count - 1;
             }
         }
 
         public int? RemoveChild(int childProcessID)
         {
-            lock (children)
+            lock (pseudoThreads)
             {
-                for (int i=0; i < children.Count; i++)
+                for (int i=0; i < pseudoThreads.Count; i++)
                 {
-                    if (!children[i].HasValue) continue;
-                    if (children[i].Value == childProcessID)
-                    {
-                        children[i] = null;
-                        return i;
-                    }
+                    if (pseudoThreads[i].Remove(childProcessID)) return i;
                 }
             }
             return null;
