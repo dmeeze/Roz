@@ -27,7 +27,7 @@ namespace Roz.Console
         {
             System.Console.WriteLine($"{watcherName} Logging processes to {fileName}");
             
-            using (var writer = new Roz.Core.Log.Writer(fileName))
+            using (var writer = new Roz.Core.Logger.Writer(fileName))
             {
                 writer.AddMeta("logFileName", fileName);
                 writer.AddMeta("logMachine", Environment.MachineName); 
@@ -79,7 +79,7 @@ namespace Roz.Console
             return process;
         }
 
-        static void Shutdown(Core.Log.Writer writer, Core.Monitor.Processes watcher)
+        static void Shutdown(Core.Logger.Writer writer, Core.Monitor.Processes watcher)
         {
             isShutdown = true;
             writer.AddMeta("logEnd", DateTime.UtcNow.ToString("o"));

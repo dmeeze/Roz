@@ -1,13 +1,11 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Diagnostics.Tracing.Parsers;
 using Microsoft.Diagnostics.Tracing.Session;
-using Roz.Core.Log;
+using Roz.Core.Logger;
 
 namespace Roz.Core.Monitor
 {
@@ -15,12 +13,12 @@ namespace Roz.Core.Monitor
     {
         const int NONE = -1;
 
-        private readonly Log.Writer writer;
+        private readonly Writer writer;
         private TraceEventSession session;
         private readonly Stopwatch stopwatch;
         private readonly PseudoThreadPool processes;
 
-        public Processes(Log.Writer logWriter)
+        public Processes(Writer logWriter)
         {
             stopwatch = new Stopwatch();
             processes = new PseudoThreadPool();
