@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Roz.Core\Roz.Core.csproj" />
+    <ProjectReference Include="..\..\src\Roz.Core\Roz.Core.csproj" />
   </ItemGroup>
 
 </Project>

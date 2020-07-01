@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Roz.Console
+namespace Roz
 {
     class Program
     {
@@ -15,7 +15,7 @@ namespace Roz.Console
         {
             if (!args.Any())
             {
-                System.Console.WriteLine("Usage: Roz [commandline]");
+                Console.WriteLine("Usage: Roz [commandline]");
             }
             else
             {
@@ -25,7 +25,7 @@ namespace Roz.Console
 
         private static void AlwaysWatching(string[] args)
         {
-            System.Console.WriteLine($"{watcherName} Logging processes to {fileName}");
+            Console.WriteLine($"{watcherName} Logging processes to {fileName}");
             
             using (var writer = new Roz.Core.Logger.Writer(fileName))
             {
@@ -34,7 +34,7 @@ namespace Roz.Console
                 using (var watcher = new Roz.Core.Monitor.Processes(writer))
                 {
 
-                    System.Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs cancelArgs) => Shutdown(writer, watcher);
+                    Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs cancelArgs) => Shutdown(writer, watcher);
                     AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs exceptArgs) => Shutdown(writer, watcher);
 
                     try
@@ -48,7 +48,7 @@ namespace Roz.Console
                     }
                     catch (Exception e) when (!(e is OperationCanceledException))
                     {
-                        System.Console.WriteLine($"{watcherName} An error occurred : {e}");
+                        Console.WriteLine($"{watcherName} An error occurred : {e}");
                         throw;
                     }
                     finally
@@ -83,14 +83,14 @@ namespace Roz.Console
         {
             isShutdown = true;
             writer.AddMeta("logEnd", DateTime.UtcNow.ToString("o"));
-            System.Console.WriteLine($"Shutting down watcher...");            
+            Console.WriteLine($"Shutting down watcher...");            
             Task.Delay(5000).Wait();
             watcher?.StopWatching();
-            System.Console.WriteLine($"Shutting down writer...");
+            Console.WriteLine($"Shutting down writer...");
             Task.Delay(5000).Wait();
             writer?.Close();            
-            System.Console.WriteLine($"{watcherName} Logged processes to {fileName}");
-            System.Console.WriteLine($"Open this file in chrome://tracing/");
+            Console.WriteLine($"{watcherName} Logged processes to {fileName}");
+            Console.WriteLine($"Open this file in chrome://tracing/");
         }
 
         static string GetTimeCode(DateTime t) => t.ToString("yyyyMMddhhmmssfff");

@@ -1,7 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Roz.Core.Monitor;
 
-namespace Roz.Test
+namespace Roz.Core.Test
 {
     [TestClass]
     public class PseudoThreadPoolTest

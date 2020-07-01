@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Roz.Core", "Roz.Core\Roz.Core.csproj", "{C964C183-4000-4130-8F99-95371E4E8C07}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Roz.Core", "src\Roz.Core\Roz.Core.csproj", "{C964C183-4000-4130-8F99-95371E4E8C07}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Roz.Console", "Roz.Console\Roz.Console.csproj", "{3DB2454A-8BDC-42E8-B2BF-3A0C5D2D70FF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Roz", "src\Roz\Roz.csproj", "{3DB2454A-8BDC-42E8-B2BF-3A0C5D2D70FF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Roz.Test", "Roz.Test\Roz.Test.csproj", "{A49EC7F3-4BC5-47D3-8560-7BABEAD86E24}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Roz.Core.Test", "test\Roz.Core.Test\Roz.Core.Test.csproj", "{A49EC7F3-4BC5-47D3-8560-7BABEAD86E24}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
