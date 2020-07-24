@@ -10,9 +10,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Roz.Console/bin/Debug/netcoreapp3.1/Roz.Console.dll",
+            "program": "${workspaceFolder}/src/Roz/bin/Debug/netcoreapp3.1/Roz.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/Roz.Console",
+            "cwd": "${workspaceFolder}/src/Roz",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false

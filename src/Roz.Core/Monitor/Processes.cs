@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Diagnostics.Tracing.Parsers;
 using Microsoft.Diagnostics.Tracing.Session;
@@ -15,19 +16,21 @@ namespace Roz.Core.Monitor
 
         private readonly Writer writer;
         private TraceEventSession session;
-        private readonly Stopwatch stopwatch;
         private readonly PseudoThreadPool processes;
+        private List<string> filters;
+        private readonly HashSet<int> trackedProcessIDs = new HashSet<int>(); 
 
         public Processes(Writer logWriter)
         {
-            stopwatch = new Stopwatch();
+            if (!(TraceEventSession.IsElevated() ?? false)) throw new Exception("Tracing requires Administrator rights.");
             processes = new PseudoThreadPool();
             writer = logWriter;
         }
 
-        public void Watch(string sessionName)
+        public void Watch(string sessionName, string[] processesToWatch)
         {
-            if (!(TraceEventSession.IsElevated() ?? false)) throw new Exception("Tracing requires Administrator rights.");
+
+            filters = new List<string>(processesToWatch);
 
             if (session != null) throw new Exception("Session already started");
             // NB : StopOnDispose is the default, but because trace sessions continue even after
@@ -36,7 +39,6 @@ namespace Roz.Core.Monitor
             session.EnableKernelProvider(KernelTraceEventParser.Keywords.Process);
             session.Source.Kernel.ProcessStart += ProcessStartEvent;
             session.Source.Kernel.ProcessStop += ProcessStopEvent;
-            stopwatch.Start();
             session.Source.Process();
         }
         
@@ -56,8 +58,16 @@ namespace Roz.Core.Monitor
 
         private void ProcessStartEvent(TraceEvent data)
         {
+            var parentID = getParentID(data) ?? NONE;
+
+            bool watchThis = (trackedProcessIDs.Contains(parentID)) ||
+                !filters.Any() ||
+                filters.Any(filter => data.ProcessName.Contains(filter, StringComparison.OrdinalIgnoreCase));
+
+            if (!watchThis) return;
+
+            trackedProcessIDs.Add(data.ProcessID);
             var entry = new BeginEntry(NONE, NONE, data.TimeStampRelativeMSec * 1000.0, data.ProcessName);
-            var parentID = getParentID(data) ?? NONE;            
             entry.ThreadID = processes.AddChild(data.ProcessID, parentID);
             entry.Args = buildArgs(data).ToList();
             writer.AddEntry(entry);
@@ -65,6 +75,8 @@ namespace Roz.Core.Monitor
 
         private void ProcessStopEvent(TraceEvent data)
         {
+            if (!trackedProcessIDs.Remove(data.ProcessID)) return;
+
             var entry = new EndEntry(NONE, NONE, data.TimeStampRelativeMSec * 1000.0);
             var tid = processes.RemoveChild(data.ProcessID);
             if (tid.HasValue) entry.ThreadID = tid.Value;            
@@ -109,4 +121,12 @@ namespace Roz.Core.Monitor
         private string escape(string entry) => entry.Replace(@"\",@"\\").Replace(@"""",@"\""");
 
     }
+
+    public static class StringExtensions
+{
+    public static bool Contains(this string source, string toCheck, StringComparison comp)
+    {
+        return source?.IndexOf(toCheck, comp) >= 0;
+    }
+}
 }

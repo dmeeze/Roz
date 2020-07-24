@@ -2,30 +2,52 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CommandLine;
 
 namespace Roz
 {
     class Program
     {
-        static string watcherName = $"Roz";
-        static string fileName = $"{watcherName}_Trace_{GetTimeCode(DateTime.UtcNow)}.json";
         static bool isShutdown = false;
+        static string fileName;
 
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            if (!args.Any())
+            return Parser.Default
+                .ParseArguments<Options>(args)
+                .MapResult(
+                    options => AlwaysWatching(options),
+                    _ => 1);               
+        }
+
+        private static int AlwaysWatching(Options args)
+        {
+            fileName = String.IsNullOrEmpty(args.Outfile) ? $"Roz_Trace_{GetTimeCode(DateTime.UtcNow)}.json" : args.Outfile;
+
+
+            var command = args.Command.ToArray();
+            var filters = args.Watched.ToArray();
+
+            if (filters.Any())
             {
-                Console.WriteLine("Usage: Roz [commandline]");
+                Console.WriteLine($"Roz: Watching for processes '{string.Join(' ',filters)}'");
             }
             else
             {
-                AlwaysWatching(args);
+                Console.WriteLine($"Roz: Watching all processes");
             }
-        }
 
-        private static void AlwaysWatching(string[] args)
-        {
-            Console.WriteLine($"{watcherName} Logging processes to {fileName}");
+            if (command.Any())
+            {
+                Console.WriteLine($"Roz: Executing '{string.Join(' ',command)}'");
+            }
+            else
+            {
+                Console.WriteLine($"Roz: No command specified, waiting for Ctrl-C");
+            }
+
+            Console.WriteLine($"Roz: Logging to {fileName}");
+
             
             using (var writer = new Roz.Core.Logger.Writer(fileName))
             {
@@ -40,15 +62,23 @@ namespace Roz
                     try
                     {                        
                         writer.AddMeta("logStart", DateTime.UtcNow.ToString("o"));
-                        Task.Run( () => watcher.Watch(watcherName) );
-                        var process = CreateProcess(args);
-                        process.Exited += (object sender, EventArgs eventArgs) => Shutdown(writer, watcher);
-                        process.Start();
-                        process.WaitForExit();
+                        Task.Run( () => watcher.Watch("Roz", filters) );
+
+                        if (command.Any())
+                        {
+                            var process = CreateProcess(command);
+                            process.Exited += (object sender, EventArgs eventArgs) => Shutdown(writer, watcher);
+                            process.Start();
+                            process.WaitForExit();
+                        }
+                        else
+                        {
+                            Task.Delay(-1).GetAwaiter().GetResult();
+                        }
                     }
                     catch (Exception e) when (!(e is OperationCanceledException))
                     {
-                        Console.WriteLine($"{watcherName} An error occurred : {e}");
+                        Console.WriteLine($"Roz: An error occurred : {e}");
                         throw;
                     }
                     finally
@@ -57,6 +87,7 @@ namespace Roz
                     }
                 }
             }
+            return 0;
         }
 
         private static System.Diagnostics.Process CreateProcess(string[] args)
@@ -89,7 +120,7 @@ namespace Roz
             Console.WriteLine($"Shutting down writer...");
             Task.Delay(5000).Wait();
             writer?.Close();            
-            Console.WriteLine($"{watcherName} Logged processes to {fileName}");
+            Console.WriteLine($"Roz: Logged processes to {fileName}");
             Console.WriteLine($"Open this file in chrome://tracing/");
         }
 
